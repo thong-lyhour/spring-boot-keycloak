@@ -1,0 +1,24 @@
+server:
+  port: 5000
+
+keycloak:
+  auth-server-url: http://localhost:8080
+  realm: cob-dev
+  client-id: cob-service
+  public-client: false
+  credentials:
+    secret: 6sfHnXTWDsBIi2w8wrc50Wf6Bbzlfojo
+  security-constraints:
+    - authRoles:
+        - "user"
+      securityCollections:
+        - name: "Protected API"
+          patterns:
+            - "/api/*"
+
+spring:
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: ${keycloak.auth-server-url}/realms/${keycloak.realm}
