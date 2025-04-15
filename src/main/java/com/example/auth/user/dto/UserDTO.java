@@ -1,4 +1,4 @@
-package com.example.auth.config.security.dto;
+package com.example.auth.user.dto;
 
 
 import lombok.Getter;

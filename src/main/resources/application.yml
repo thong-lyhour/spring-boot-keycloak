@@ -4,7 +4,7 @@ server:
 keycloak:
   auth-server-url: http://localhost:8080
   realm: cob-dev
-  client-id: cob-service
+  client-id: cob-service-admin
   public-client: false
   credentials:
     secret: 6sfHnXTWDsBIi2w8wrc50Wf6Bbzlfojo

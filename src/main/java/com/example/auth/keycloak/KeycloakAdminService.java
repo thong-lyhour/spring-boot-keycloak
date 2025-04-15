@@ -1,6 +1,8 @@
-package com.example.auth.config.security.keycloak;
+package com.example.auth.keycloak;
 
-import com.example.auth.config.security.dto.UserDTO;
+import com.example.auth.user.dto.UserDTO;
+import com.example.auth.user.dto.request.LoginRequestDTO;
+import com.example.auth.user.dto.response.LoginResponseDTO;
 import jakarta.ws.rs.core.Response;
 import org.keycloak.OAuth2Constants;
 import org.keycloak.admin.client.Keycloak;
@@ -11,10 +13,19 @@ import org.keycloak.representations.idm.CredentialRepresentation;
 import org.keycloak.representations.idm.UserRepresentation;
 import org.keycloak.representations.idm.RoleRepresentation;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
+import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.client.RestTemplate;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
@@ -27,7 +38,7 @@ public class KeycloakAdminService {
     @Value("${keycloak.realm}")
     private String realm;
 
-    @Value("${keycloak.clientId}")
+    @Value("${keycloak.client-id}")
     private String clientId;
 
     @Value("${keycloak.credentials.secret}")
@@ -107,5 +118,30 @@ public class KeycloakAdminService {
                 .collect(Collectors.toList());
 
         userResource.roles().realmLevel().add(realmRoles);
+    }
+
+    public ResponseEntity<?> authenticate(LoginRequestDTO loginRequest) {
+        try {
+            String tokenUrl = String.format("%s/realms/%s/protocol/openid-connect/token", serverUrl, realm);
+
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+
+            MultiValueMap<String, String> map = new LinkedMultiValueMap<>();
+            map.add("grant_type", "password");
+            map.add("client_id", clientId);
+            map.add("client_secret", clientSecret);
+            map.add("username", loginRequest.getUsername());
+            map.add("password", loginRequest.getPassword());
+
+            HttpEntity<MultiValueMap<String, String>> request = new HttpEntity<>(map, headers);
+
+            RestTemplate restTemplate = new RestTemplate();
+            ResponseEntity<Map> response = restTemplate.postForEntity(tokenUrl, request, Map.class);
+
+            return ResponseEntity.ok().body(new LoginResponseDTO((String) response.getBody().get("access_token")));
+        } catch (HttpClientErrorException e) {
+            return ResponseEntity.status(e.getStatusCode()).body(Map.of("error", "Invalid credentials", "message", e.getMessage()));
+        }
     }
 }
